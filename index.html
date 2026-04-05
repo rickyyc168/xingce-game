@@ -753,9 +753,7 @@ function showStory() {
     const delay = parseInt(line.dataset.delay) || 0;
     setTimeout(() => {
       line.classList.add('visible');
-      // Auto-scroll to keep visible content in view
-      const container = document.getElementById('story-text-block');
-      if (container) container.scrollTop = container.scrollHeight;
+      // 不自动滚动，让文字自然从上往下出现
     }, delay);
   });
 
