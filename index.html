@@ -250,6 +250,95 @@
     #question-text { font-size: 14px; }
   }
 
+  /* Username & Leaderboard Modal */
+  #username-modal, #leaderboard-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,14,39,0.92); z-index: 200;
+  }
+  .modal-box {
+    background: rgba(15,20,50,0.95);
+    border: 2px solid rgba(255,215,0,0.4);
+    border-radius: 20px; padding: 32px 36px;
+    max-width: 420px; width: 90%; text-align: center;
+    box-shadow: 0 0 40px rgba(255,215,0,0.15);
+    backdrop-filter: blur(12px);
+  }
+  .modal-box h2 {
+    font-size: 24px; font-weight: 900; color: #ffd700; margin-bottom: 16px;
+  }
+  .modal-box input[type="text"] {
+    width: 100%; padding: 14px 18px; font-size: 18px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,215,0,0.3);
+    border-radius: 12px; color: #fff; text-align: center;
+    font-family: 'Noto Sans SC', sans-serif; outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-box input[type="text"]:focus {
+    border-color: #ffd700;
+  }
+  .modal-box input[type="text"]::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+  .modal-box .btn-row {
+    display: flex; gap: 12px; margin-top: 20px; justify-content: center;
+  }
+  .modal-btn {
+    padding: 12px 28px; font-size: 16px; font-weight: 700;
+    border-radius: 12px; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif; transition: all 0.2s;
+  }
+  .modal-btn-primary {
+    background: linear-gradient(135deg, #ffd700, #ff6348);
+    border: none; color: #0a0e27;
+  }
+  .modal-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255,215,0,0.4);
+  }
+  .modal-btn-secondary {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.7);
+  }
+  .modal-btn-secondary:hover {
+    border-color: rgba(255,255,255,0.6); color: #fff;
+  }
+
+  /* Leaderboard Table */
+  .lb-table {
+    width: 100%; margin-top: 16px; border-collapse: collapse;
+    font-size: 14px;
+  }
+  .lb-table th {
+    color: #ffd700; font-size: 12px; letter-spacing: 1px;
+    padding: 8px 4px; border-bottom: 1px solid rgba(255,215,0,0.2);
+  }
+  .lb-table td {
+    padding: 8px 4px; color: rgba(255,255,255,0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .lb-table tr:nth-child(1) td { color: #ffd700; font-weight: 700; }
+  .lb-table tr:nth-child(2) td { color: #c0c0c0; font-weight: 700; }
+  .lb-table tr:nth-child(3) td { color: #cd7f32; font-weight: 700; }
+  .lb-rank { width: 36px; text-align: center; }
+  .lb-name { text-align: left; }
+  .lb-level { width: 60px; text-align: center; }
+  .lb-score { width: 50px; text-align: center; }
+  .lb-empty {
+    color: rgba(255,255,255,0.3); font-size: 14px;
+    padding: 30px 0;
+  }
+  .lb-category-btn {
+    display: inline-block; padding: 6px 14px; margin: 4px;
+    background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 8px; color: rgba(255,255,255,0.7); font-size: 12px;
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  .lb-category-btn.active {
+    background: rgba(255,215,0,0.25); border-color: #ffd700; color: #ffd700;
+  }
+
   /* Particles container */
   .particle {
     position: absolute; pointer-events: none; border-radius: 50%;
@@ -270,6 +359,7 @@
   <h1>📝 行测大闯关</h1>
   <div class="tagline">是学霸就坚持100关 · 接住正确答案，避开陷阱</div>
   <button class="big-btn" onclick="showStory()">开始挑战</button>
+  <button class="modal-btn modal-btn-secondary" style="margin-top:16px" onclick="showLeaderboard()">🏆 排行榜</button>
 </div>
 
 <!-- Story Screen -->
@@ -359,14 +449,41 @@
 <div id="gameover-screen">
   <h1>💀 挑战失败</h1>
   <div id="gameover-stats"></div>
-  <button class="big-btn" onclick="backToMenu()">再试一次</button>
+  <button class="big-btn" onclick="showUsernameModal()">提交分数</button>
+  <button class="modal-btn modal-btn-secondary" style="margin-top:12px" onclick="backToMenu()">再试一次</button>
 </div>
 
 <!-- Win -->
 <div id="win-screen">
   <h1>🏆 通关！学霸认证！</h1>
   <div id="win-stats" style="font-size:16px;color:rgba(255,255,255,0.7);margin-bottom:30px;text-align:center;line-height:1.8"></div>
-  <button class="big-btn" onclick="backToMenu()">返回菜单</button>
+  <button class="big-btn" onclick="showUsernameModal()">提交分数</button>
+  <button class="modal-btn modal-btn-secondary" style="margin-top:12px" onclick="backToMenu()">返回菜单</button>
+</div>
+
+<!-- Username Input Modal -->
+<div id="username-modal">
+  <div class="modal-box">
+    <h2>📝 请输入昵称</h2>
+    <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px">你的成绩将显示在排行榜上</p>
+    <input type="text" id="username-input" placeholder="输入你的昵称..." maxlength="12" autocomplete="off">
+    <div class="btn-row">
+      <button class="modal-btn modal-btn-secondary" onclick="closeUsernameModal()">跳过</button>
+      <button class="modal-btn modal-btn-primary" onclick="submitScore()">提交 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard Modal -->
+<div id="leaderboard-modal">
+  <div class="modal-box" style="max-width:480px">
+    <h2>🏆 排行榜</h2>
+    <div id="lb-categories" style="margin-bottom:12px"></div>
+    <div id="lb-content" style="max-height:360px;overflow-y:auto;scrollbar-width:none"></div>
+    <div class="btn-row">
+      <button class="modal-btn modal-btn-secondary" onclick="closeLeaderboard()">关闭</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1163,7 +1280,168 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
+// ============================================================
+// RANKING SYSTEM (localStorage)
+// ============================================================
+const LB_KEY = 'xingce_leaderboard';
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveLeaderboard(data) {
+  localStorage.setItem(LB_KEY, JSON.stringify(data));
+}
+
+function getSavedName() {
+  return localStorage.getItem('xingce_username') || '';
+}
+
+function saveName(name) {
+  localStorage.setItem('xingce_username', name);
+}
+
+function addScore(name, category, level, score, maxCombo, totalCorrect, totalWrong) {
+  const lb = getLeaderboard();
+  lb.push({
+    name, category, level, score, maxCombo,
+    totalCorrect, totalWrong, date: Date.now()
+  });
+  const cats = {};
+  lb.forEach(e => {
+    if (!cats[e.category]) cats[e.category] = [];
+    cats[e.category].push(e);
+  });
+  const trimmed = [];
+  Object.values(catList).forEach(catKey => {
+    const entries = (cats[catKey.key] || [])
+      .sort((a, b) => b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo)
+      .slice(0, 100);
+    trimmed.push(...entries);
+  });
+  saveLeaderboard(trimmed);
+}
+
+const catList = {
+  language: { key: 'language', name: '言语理解', emoji: '📖' },
+  math: { key: 'math', name: '数量关系', emoji: '🔢' },
+  logic: { key: 'logic', name: '判断推理', emoji: '🧩' },
+  data: { key: 'data', name: '资料分析', emoji: '📊' },
+  common: { key: 'common', name: '常识判断', emoji: '🌍' }
+};
+
+let pendingScoreData = null;
+
+function showUsernameModal() {
+  pendingScoreData = {
+    category: state.category,
+    level: state.level,
+    score: state.totalCorrect,
+    maxCombo: state.maxCombo,
+    totalCorrect: state.totalCorrect,
+    totalWrong: state.totalWrong
+  };
+  const saved = getSavedName();
+  document.getElementById('username-input').value = saved;
+  document.getElementById('username-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('username-input').focus(), 100);
+}
+
+function closeUsernameModal() {
+  document.getElementById('username-modal').style.display = 'none';
+  pendingScoreData = null;
+  backToMenu();
+}
+
+function submitScore() {
+  const input = document.getElementById('username-input');
+  let name = input.value.trim();
+  if (!name) {
+    input.style.borderColor = '#ff4757';
+    input.placeholder = '请输入昵称...';
+    setTimeout(() => { input.style.borderColor = 'rgba(255,215,0,0.3)'; }, 1500);
+    return;
+  }
+  if (name.length > 12) name = name.slice(0, 12);
+  saveName(name);
+  if (pendingScoreData) {
+    addScore(name, pendingScoreData.category, pendingScoreData.level,
+      pendingScoreData.score, pendingScoreData.maxCombo,
+      pendingScoreData.totalCorrect, pendingScoreData.totalWrong);
+  }
+  document.getElementById('username-modal').style.display = 'none';
+  pendingScoreData = null;
+  backToMenu();
+  setTimeout(() => showLeaderboard(), 300);
+}
+
+let lbCurrentCategory = 'language';
+
+function showLeaderboard() {
+  lbCurrentCategory = state.category || 'language';
+  renderLeaderboard();
+  document.getElementById('leaderboard-modal').style.display = 'flex';
+}
+
+function closeLeaderboard() {
+  document.getElementById('leaderboard-modal').style.display = 'none';
+}
+
+function renderLeaderboard() {
+  const lb = getLeaderboard();
+  const catDiv = document.getElementById('lb-categories');
+  catDiv.innerHTML = Object.values(catList).map(c =>
+    '<span class="lb-category-btn ' + (c.key === lbCurrentCategory ? 'active' : '') +
+    '" onclick="lbSwitchCategory(\'' + c.key + '\')">' + c.emoji + ' ' + c.name + '</span>'
+  ).join('');
+
+  const filtered = lb
+    .filter(e => e.category === lbCurrentCategory)
+    .sort((a, b) => b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo)
+    .slice(0, 20);
+
+  const contentDiv = document.getElementById('lb-content');
+  if (filtered.length === 0) {
+    contentDiv.innerHTML = '<div class="lb-empty">暂无记录，快来挑战吧！</div>';
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  let html = '<table class="lb-table"><thead><tr>' +
+    '<th class="lb-rank">#</th><th class="lb-name">昵称</th>' +
+    '<th class="lb-level">关卡</th><th class="lb-score">答对</th>' +
+    '<th class="lb-score">连击</th></tr></thead><tbody>';
+
+  filtered.forEach((e, i) => {
+    const rank = i < 3 ? medals[i] : (i + 1);
+    const n = e.name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const isMe = n === getSavedName();
+    html += '<tr' + (isMe ? ' style="background:rgba(255,215,0,0.08)"' : '') + '>' +
+      '<td class="lb-rank">' + rank + '</td>' +
+      '<td class="lb-name">' + n + (isMe ? ' ⭐' : '') + '</td>' +
+      '<td class="lb-level">' + e.level + '</td>' +
+      '<td class="lb-score">' + e.totalCorrect + '</td>' +
+      '<td class="lb-score">' + e.maxCombo + '</td></tr>';
+  });
+
+  html += '</tbody></table>';
+  contentDiv.innerHTML = html;
+}
+
+function lbSwitchCategory(cat) {
+  lbCurrentCategory = cat;
+  renderLeaderboard();
+}
+
+// Enter key for username input
+document.getElementById('username-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitScore();
+});
+
+// ============================================================
 // Init
+// ============================================================
 initStars();
 // Draw initial background
 function drawBg() {
