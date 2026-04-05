@@ -145,25 +145,29 @@
   }
   #story-content {
     max-width: 520px; width: 90%; text-align: center;
-    max-height: 90vh; overflow-y: auto;
-    padding: 20px 10px;
-    scrollbar-width: none;
+    display: flex; flex-direction: column; align-items: center;
+    max-height: 90vh; padding: 20px 10px;
   }
-  #story-content::-webkit-scrollbar { display: none; }
   #story-avatar {
-    width: 180px; height: 180px; margin-bottom: 24px;
+    width: 160px; height: 160px; margin-bottom: 16px;
     border-radius: 50%; object-fit: cover;
     border: 3px solid rgba(255,215,0,0.4);
     box-shadow: 0 0 30px rgba(255,215,0,0.2);
     animation: storyBounce 2s ease-in-out infinite;
+    flex-shrink: 0;
   }
+  #story-text-block {
+    text-align: left; overflow-y: auto;
+    scrollbar-width: none;
+    flex: 1; min-height: 0; width: 100%;
+    padding-bottom: 20px;
+  }
+  #story-text-block::-webkit-scrollbar { display: none; }
   @keyframes storyBounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
   }
-  #story-text-block {
-    text-align: left; min-height: 300px;
-  }
+  /* story-text-block styled above with scroll */
   .story-line {
     font-size: 16px; color: rgba(255,255,255,0.75);
     line-height: 2; margin: 0;
@@ -633,7 +637,7 @@ function showStory() {
     setTimeout(() => {
       line.classList.add('visible');
       // Auto-scroll to keep visible content in view
-      const container = document.getElementById('story-content');
+      const container = document.getElementById('story-text-block');
       if (container) container.scrollTop = container.scrollHeight;
     }, delay);
   });
