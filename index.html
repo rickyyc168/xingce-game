@@ -135,6 +135,54 @@
     box-shadow: 0 8px 30px rgba(255,215,0,0.6);
   }
 
+  /* Story Screen */
+  #story-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a1f4e 0%, #0a0e27 70%);
+    z-index: 100;
+    overflow: hidden;
+  }
+  #story-content {
+    max-width: 520px; width: 90%; text-align: center;
+    max-height: 90vh; overflow-y: auto;
+    padding: 20px 10px;
+    scrollbar-width: none;
+  }
+  #story-content::-webkit-scrollbar { display: none; }
+  #story-avatar {
+    font-size: 64px; margin-bottom: 20px;
+    animation: storyBounce 2s ease-in-out infinite;
+  }
+  @keyframes storyBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  #story-text-block {
+    text-align: left; min-height: 300px;
+  }
+  .story-line {
+    font-size: 16px; color: rgba(255,255,255,0.75);
+    line-height: 2; margin: 0;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .story-line.visible {
+    opacity: 1; transform: translateY(0);
+  }
+  .story-break { line-height: 0.8; }
+  .story-highlight {
+    color: #ffd700 !important; font-weight: 700; font-size: 17px;
+  }
+  .story-question {
+    color: #7bed9f !important; font-weight: 900; font-size: 20px;
+    text-shadow: 0 0 15px rgba(123,237,159,0.4);
+  }
+  @media (max-width: 768px) {
+    .story-line { font-size: 14px; }
+    .story-question { font-size: 17px; }
+  }
+
   /* Game Over */
   #gameover-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -214,7 +262,42 @@
 <div id="start-screen">
   <h1>📝 行测大闯关</h1>
   <div class="tagline">是学霸就坚持100关 · 接住正确答案，避开陷阱</div>
-  <button class="big-btn" onclick="showCategoryMenu()">开始挑战</button>
+  <button class="big-btn" onclick="showStory()">开始挑战</button>
+</div>
+
+<!-- Story Screen -->
+<div id="story-screen" style="display:none">
+  <div id="story-content">
+    <div id="story-avatar">😭</div>
+    <div id="story-text-block">
+      <p class="story-line" data-delay="0">硕子，一个普通的年轻人，</p>
+      <p class="story-line" data-delay="800">毕业三年，换了五份工作，</p>
+      <p class="story-line" data-delay="1600">简历上写着"精通Office"，</p>
+      <p class="story-line" data-delay="2400">实际上只会用Word打字。</p>
+      <p class="story-line story-break" data-delay="3200">&nbsp;</p>
+      <p class="story-line" data-delay="3500">2025年，他妈下了最后通牒：</p>
+      <p class="story-line" data-delay="4300">"再考不上事业编，就别回家了。"</p>
+      <p class="story-line story-break" data-delay="5100">&nbsp;</p>
+      <p class="story-line" data-delay="5400">硕子报了名，买了三本教材，</p>
+      <p class="story-line" data-delay="6200">信心满满地走进考场——</p>
+      <p class="story-line" data-delay="7000">然后看着行测卷子，沉默了整整十分钟。</p>
+      <p class="story-line story-break" data-delay="7800">&nbsp;</p>
+      <p class="story-line" data-delay="8100">"数量关系？不会。"</p>
+      <p class="story-line" data-delay="8900">"判断推理？乱猜。"</p>
+      <p class="story-line" data-delay="9700">"常识判断？凭感觉吧。"</p>
+      <p class="story-line story-break" data-delay="10500">&nbsp;</p>
+      <p class="story-line" data-delay="10800">成绩出来那天，硕子看着屏幕上的分数，</p>
+      <p class="story-line" data-delay="11600">默默关掉了手机，</p>
+      <p class="story-line" data-delay="12400">在出租屋里吃了一整箱泡面。</p>
+      <p class="story-line story-break" data-delay="13200">&nbsp;</p>
+      <p class="story-line story-highlight" data-delay="13500">2026年，硕子决定再战一次。</p>
+      <p class="story-line story-highlight" data-delay="14300">这一次，他需要你的帮助。</p>
+      <p class="story-line story-question" data-delay="15100">你，能帮硕子考上事业编吗？</p>
+    </div>
+    <button id="story-btn" class="big-btn" onclick="showCategoryMenu()" style="display:none">
+      🎯 帮助硕子
+    </button>
+  </div>
 </div>
 
 <!-- Category Menu -->
@@ -536,8 +619,40 @@ function initStars() {
 // ============================================================
 // SCREENS
 // ============================================================
+function showStory() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('story-screen').style.display = 'flex';
+
+  // Animate lines one by one
+  const lines = document.querySelectorAll('.story-line');
+  lines.forEach(line => {
+    const delay = parseInt(line.dataset.delay) || 0;
+    setTimeout(() => {
+      line.classList.add('visible');
+      // Auto-scroll to keep visible content in view
+      const container = document.getElementById('story-content');
+      if (container) container.scrollTop = container.scrollHeight;
+    }, delay);
+  });
+
+  // Show button after all lines
+  const lastDelay = 15100;
+  setTimeout(() => {
+    const btn = document.getElementById('story-btn');
+    btn.style.display = 'inline-block';
+    btn.style.opacity = 0;
+    btn.style.transform = 'translateY(20px)';
+    btn.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    requestAnimationFrame(() => {
+      btn.style.opacity = 1;
+      btn.style.transform = 'translateY(0)';
+    });
+  }, lastDelay + 800);
+}
+
 function showCategoryMenu() {
   document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('story-screen').style.display = 'none';
   document.getElementById('menu-screen').style.display = 'flex';
 }
 
@@ -576,7 +691,12 @@ function backToMenu() {
   document.getElementById('ui-overlay').style.display = 'none';
   document.getElementById('gameover-screen').style.display = 'none';
   document.getElementById('win-screen').style.display = 'none';
-  document.getElementById('menu-screen').style.display = 'flex';
+  document.getElementById('story-screen').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+
+  // Reset story for replay
+  document.querySelectorAll('.story-line').forEach(l => l.classList.remove('visible'));
+  document.getElementById('story-btn').style.display = 'none';
 }
 
 function gameOver() {
