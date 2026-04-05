@@ -493,7 +493,7 @@ let state = {
   maxCombo: 0,
   totalCorrect: 0,
   totalWrong: 0,
-  fallingSpeed: 1.8,
+  fallingSpeed: 1.2,
   questionTimer: 0,
 };
 
@@ -551,7 +551,7 @@ function startGame(cat) {
   state.maxCombo = 0;
   state.totalCorrect = 0;
   state.totalWrong = 0;
-  state.fallingSpeed = 1.8;
+  state.fallingSpeed = 1.2;
   state.player.x = canvas.width / 2 - 20;
   state.player.y = canvas.height - 90;
   state.items = [];
@@ -673,7 +673,7 @@ function spawnNextQuestion() {
       h: 44,
       text: state.currentQ.opts[indices[i]],
       isCorrect: indices[i] === state.currentQ.correctIndex,
-      speed: state.fallingSpeed + Math.random() * 0.3,
+      speed: state.fallingSpeed + Math.random() * 0.15,
       slot: i,
       active: true,
     });
@@ -692,7 +692,7 @@ function handleCatch(item) {
     state.combo++;
     state.totalCorrect++;
     if (state.combo > state.maxCombo) state.maxCombo = state.combo;
-    state.fallingSpeed = Math.min(1.8 + state.level * 0.04, 5);
+    state.fallingSpeed = Math.min(1.2 + state.level * 0.02, 3.5);
 
     spawnParticles(item.x, item.y, '#7bed9f', 15);
     showHudMsg(state.combo >= 3 ? `+1 ❤️ ${state.combo}连击！` : '+1 ❤️', '#7bed9f');
