@@ -1280,17 +1280,80 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 // ============================================================
-// RANKING SYSTEM (localStorage)
+// RANKING SYSTEM (GitHub API + localStorage cache)
 // ============================================================
-const LB_KEY = 'xingce_leaderboard';
+// ⚠️ 去 GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
+// 创建一个只勾选 "Contents: Read and write" 的 token，然后填到这里
+const GH_TOKEN = ''; // <-- 在这里填入你的 Fine-grained PAT
+const GH_OWNER = 'rickyyc168';
+const GH_REPO  = 'xingce-game';
+const GH_FILE  = 'leaderboard.json';
+const GH_API   = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/' + GH_FILE;
+
+let ghFileSha = null; // 缓存文件 SHA，写入时需要
+
+function ghHeaders() {
+  return {
+    'Authorization': 'Bearer ' + GH_TOKEN,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+}
+
+// 从 GitHub 拉取排行榜
+function fetchLeaderboardFromGitHub() {
+  if (!GH_TOKEN) return Promise.resolve(null);
+  return fetch(GH_API, { headers: ghHeaders() })
+    .then(function(res) {
+      if (!res.ok) throw new Error('GitHub fetch ' + res.status);
+      return res.json();
+    })
+    .then(function(data) {
+      ghFileSha = data.sha;
+      var decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+      localStorage.setItem('xingce_leaderboard', JSON.stringify(decoded));
+      return decoded;
+    })
+    .catch(function(err) {
+      console.warn('GitHub 拉取失败，使用本地缓存:', err);
+      return null;
+    });
+}
+
+// 推送排行榜到 GitHub
+function pushLeaderboardToGitHub(lbData) {
+  if (!GH_TOKEN) return Promise.resolve();
+  var body = {
+    message: '更新排行榜 - ' + new Date().toLocaleString('zh-CN'),
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(lbData, null, 2)))),
+    branch: 'main'
+  };
+  if (ghFileSha) body.sha = ghFileSha;
+
+  return fetch(GH_API, {
+    method: 'PUT',
+    headers: ghHeaders(),
+    body: JSON.stringify(body)
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('GitHub push ' + res.status);
+      return res.json();
+    })
+    .then(function(data) {
+      ghFileSha = data.content.sha;
+    })
+    .catch(function(err) {
+      console.warn('GitHub 推送失败:', err);
+    });
+}
 
 function getLeaderboard() {
-  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
+  try { return JSON.parse(localStorage.getItem('xingce_leaderboard')) || []; }
   catch { return []; }
 }
 
 function saveLeaderboard(data) {
-  localStorage.setItem(LB_KEY, JSON.stringify(data));
+  localStorage.setItem('xingce_leaderboard', JSON.stringify(data));
 }
 
 function getSavedName() {
@@ -1302,24 +1365,29 @@ function saveName(name) {
 }
 
 function addScore(name, category, level, score, maxCombo, totalCorrect, totalWrong) {
-  const lb = getLeaderboard();
-  lb.push({
-    name, category, level, score, maxCombo,
-    totalCorrect, totalWrong, date: Date.now()
+  // 先从 GitHub 拉最新数据，合并后再推送
+  fetchLeaderboardFromGitHub().then(function(remote) {
+    var lb = remote || getLeaderboard();
+    lb.push({
+      name, category, level, score, maxCombo,
+      totalCorrect, totalWrong, date: Date.now()
+    });
+    // 按分类保留前 100 名
+    var cats = {};
+    lb.forEach(function(e) {
+      if (!cats[e.category]) cats[e.category] = [];
+      cats[e.category].push(e);
+    });
+    var trimmed = [];
+    Object.values(catList).forEach(function(catKey) {
+      var entries = (cats[catKey.key] || [])
+        .sort(function(a, b) { return b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo; })
+        .slice(0, 100);
+      trimmed = trimmed.concat(entries);
+    });
+    saveLeaderboard(trimmed);
+    pushLeaderboardToGitHub(trimmed);
   });
-  const cats = {};
-  lb.forEach(e => {
-    if (!cats[e.category]) cats[e.category] = [];
-    cats[e.category].push(e);
-  });
-  const trimmed = [];
-  Object.values(catList).forEach(catKey => {
-    const entries = (cats[catKey.key] || [])
-      .sort((a, b) => b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo)
-      .slice(0, 100);
-    trimmed.push(...entries);
-  });
-  saveLeaderboard(trimmed);
 }
 
 const catList = {
@@ -1379,8 +1447,14 @@ let lbCurrentCategory = 'language';
 
 function showLeaderboard() {
   lbCurrentCategory = state.category || 'language';
+  // 先显示本地缓存，同时后台拉取最新
   renderLeaderboard();
   document.getElementById('leaderboard-modal').style.display = 'flex';
+  if (GH_TOKEN) {
+    fetchLeaderboardFromGitHub().then(function(data) {
+      if (data) renderLeaderboard();
+    });
+  }
 }
 
 function closeLeaderboard() {
