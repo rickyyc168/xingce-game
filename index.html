@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行测大闯关 - 是学霸就坚持100关</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: #0a0e27;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+  }
+
+  canvas { display: block; }
+
+  /* UI Overlay */
+  #ui-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 10;
+  }
+  #ui-overlay > * { pointer-events: auto; }
+
+  /* Top Bar */
+  #top-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(180deg, rgba(10,14,39,0.95) 0%, transparent 100%);
+  }
+  #level-display {
+    font-size: 18px; font-weight: 900; color: #ffd700;
+    text-shadow: 0 0 10px rgba(255,215,0,0.5);
+  }
+  #hp-container { display: flex; align-items: center; gap: 8px; }
+  #hp-bar-bg {
+    width: 160px; height: 14px; background: rgba(255,255,255,0.1);
+    border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);
+  }
+  #hp-bar {
+    height: 100%; background: linear-gradient(90deg, #ff4757, #ff6b81);
+    border-radius: 7px; transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(255,71,87,0.6);
+  }
+  #hp-text { font-size: 14px; color: #ff6b81; font-weight: 700; }
+  #score-display { font-size: 14px; color: #7bed9f; font-weight: 700; }
+
+  /* Question Box */
+  #question-box {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(15,20,50,0.92);
+    border: 2px solid rgba(255,215,0,0.4);
+    border-radius: 16px; padding: 16px 28px;
+    max-width: 90vw; width: 560px; text-align: center;
+    box-shadow: 0 0 30px rgba(255,215,0,0.15), inset 0 0 20px rgba(255,215,0,0.05);
+    backdrop-filter: blur(10px);
+    display: none;
+  }
+  #question-category {
+    font-size: 11px; color: #ffd700; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 6px; opacity: 0.8;
+  }
+  #question-text {
+    font-size: 17px; color: #fff; line-height: 1.6; font-weight: 700;
+  }
+
+  /* Menu Screen */
+  #menu-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a1f4e 0%, #0a0e27 70%);
+    z-index: 100;
+  }
+  #menu-screen h1 {
+    font-size: 52px; font-weight: 900;
+    background: linear-gradient(135deg, #ffd700, #ff6348, #ffd700);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: none; margin-bottom: 8px;
+    animation: titleGlow 3s ease-in-out infinite;
+  }
+  @keyframes titleGlow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+  #menu-screen .subtitle {
+    font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 40px;
+  }
+  .menu-btn {
+    display: block; width: 320px; padding: 16px 24px; margin: 8px 0;
+    background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,99,72,0.15));
+    border: 1.5px solid rgba(255,215,0,0.3);
+    border-radius: 14px; color: #fff; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.25s ease;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  .menu-btn:hover {
+    background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,99,72,0.3));
+    border-color: rgba(255,215,0,0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255,215,0,0.2);
+  }
+  .menu-btn .cat { display: block; font-size: 18px; margin-bottom: 2px; }
+  .menu-btn .desc { display: block; font-size: 12px; opacity: 0.6; font-weight: 400; }
+
+  /* Start Screen */
+  #start-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #1a1f4e 0%, #0a0e27 70%);
+    z-index: 100;
+  }
+  #start-screen h1 {
+    font-size: 48px; font-weight: 900; color: #ffd700;
+    text-shadow: 0 0 30px rgba(255,215,0,0.4);
+    margin-bottom: 6px;
+  }
+  #start-screen .tagline {
+    font-size: 15px; color: rgba(255,255,255,0.45); margin-bottom: 36px;
+  }
+  .big-btn {
+    padding: 18px 56px; font-size: 22px; font-weight: 900;
+    background: linear-gradient(135deg, #ffd700, #ff6348);
+    border: none; border-radius: 16px; color: #0a0e27;
+    cursor: pointer; transition: all 0.25s ease;
+    font-family: 'Noto Sans SC', sans-serif;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.4);
+  }
+  .big-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(255,215,0,0.6);
+  }
+
+  /* Game Over */
+  #gameover-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10,14,39,0.95); z-index: 100;
+  }
+  #gameover-screen h1 {
+    font-size: 44px; font-weight: 900; color: #ff4757;
+    text-shadow: 0 0 20px rgba(255,71,87,0.5);
+    margin-bottom: 12px;
+  }
+  #gameover-stats {
+    font-size: 16px; color: rgba(255,255,255,0.7); margin-bottom: 30px;
+    text-align: center; line-height: 1.8;
+  }
+  #gameover-stats span { color: #ffd700; font-weight: 700; }
+
+  /* Win Screen */
+  #win-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10,14,39,0.95); z-index: 100;
+  }
+  #win-screen h1 {
+    font-size: 44px; font-weight: 900;
+    background: linear-gradient(135deg, #ffd700, #7bed9f);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+
+  /* HUD message */
+  #hud-msg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 32px; font-weight: 900; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  /* Mobile Controls */
+  #mobile-controls {
+    position: absolute; bottom: 20px; left: 0; right: 0;
+    display: none; justify-content: center; gap: 40px;
+  }
+  .mobile-btn {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
+    color: #fff; font-size: 28px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-btn:active { background: rgba(255,215,0,0.3); border-color: #ffd700; }
+
+  @media (max-width: 768px) {
+    #mobile-controls { display: flex; }
+    #start-screen h1 { font-size: 32px; }
+    #menu-screen h1 { font-size: 36px; }
+    .menu-btn { width: 280px; }
+    #question-box { width: 92vw; padding: 12px 16px; }
+    #question-text { font-size: 14px; }
+  }
+
+  /* Particles container */
+  .particle {
+    position: absolute; pointer-events: none; border-radius: 50%;
+    animation: particleFade 0.8s ease-out forwards;
+  }
+  @keyframes particleFade {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0) translateY(-40px); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+
+<!-- Start Screen -->
+<div id="start-screen">
+  <h1>📝 行测大闯关</h1>
+  <div class="tagline">是学霸就坚持100关 · 接住正确答案，避开陷阱</div>
+  <button class="big-btn" onclick="showCategoryMenu()">开始挑战</button>
+</div>
+
+<!-- Category Menu -->
+<div id="menu-screen" style="display:none">
+  <h1>📝 行测大闯关</h1>
+  <div class="subtitle">选择你的赛道 · 每条赛道100关</div>
+  <button class="menu-btn" onclick="startGame('language')">
+    <span class="cat">📖 言语理解</span>
+    <span class="desc">逻辑填空 · 片段阅读 · 语句表达</span>
+  </button>
+  <button class="menu-btn" onclick="startGame('math')">
+    <span class="cat">🔢 数量关系</span>
+    <span class="desc">数字推理 · 数学运算 · 思维极限</span>
+  </button>
+  <button class="menu-btn" onclick="startGame('logic')">
+    <span class="cat">🧩 判断推理</span>
+    <span class="desc">图形推理 · 定义判断 · 类比推理</span>
+  </button>
+  <button class="menu-btn" onclick="startGame('data')">
+    <span class="cat">📊 资料分析</span>
+    <span class="desc">增长率 · 比重 · 倍数与比值</span>
+  </button>
+  <button class="menu-btn" onclick="startGame('common')">
+    <span class="cat">🌍 常识判断</span>
+    <span class="desc">政治 · 经济 · 法律 · 科技 · 人文</span>
+  </button>
+</div>
+
+<!-- HUD -->
+<div id="ui-overlay" style="display:none">
+  <div id="top-bar">
+    <div id="level-display">第 1 关</div>
+    <div id="hp-container">
+      <span style="font-size:16px">❤️</span>
+      <div id="hp-bar-bg"><div id="hp-bar" style="width:100%"></div></div>
+      <span id="hp-text">10</span>
+    </div>
+    <div id="score-display">✅ 0</div>
+  </div>
+  <div id="question-box">
+    <div id="question-category"></div>
+    <div id="question-text"></div>
+  </div>
+  <div id="hud-msg"></div>
+  <div id="mobile-controls">
+    <div class="mobile-btn" id="btn-left">◀</div>
+    <div class="mobile-btn" id="btn-right">▶</div>
+  </div>
+</div>
+
+<!-- Game Over -->
+<div id="gameover-screen">
+  <h1>💀 挑战失败</h1>
+  <div id="gameover-stats"></div>
+  <button class="big-btn" onclick="backToMenu()">再试一次</button>
+</div>
+
+<!-- Win -->
+<div id="win-screen">
+  <h1>🏆 通关！学霸认证！</h1>
+  <div id="win-stats" style="font-size:16px;color:rgba(255,255,255,0.7);margin-bottom:30px;text-align:center;line-height:1.8"></div>
+  <button class="big-btn" onclick="backToMenu()">返回菜单</button>
+</div>
+
+<script>
+// ============================================================
+// 行测大闯关 - Game Engine
+// ============================================================
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+// Resize
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// QUESTION BANKS
+// ============================================================
+const QUESTIONS = {
+  language: [
+    { q: '"他的话虽然不多，但每一句都___。" 填入最恰当的词：', opts: ['掷地有声','喋喋不休','语无伦次','不知所云'], ans: 0 },
+    { q: '"这个问题值得我们___思考。" 填入最恰当的词：', opts: ['深入','深刻','深沉','深远'], ans: 0 },
+    { q: '"他的演讲___了全场观众。" 填入最恰当的词：', opts: ['征服','克服','制服','压服'], ans: 0 },
+    { q: '下列词语中没有错别字的一项是：', opts: ['部署','布署','部暑','布暑'], ans: 0 },
+    { q: '"凡事预则立，不预则废"中的"预"意思是：', opts: ['事先准备','预测未来','预防疾病','预算计划'], ans: 0 },
+    { q: '下列句子没有语病的一项是：', opts: ['通过学习，使我提高了认识','他的革命精神时刻浮现在我眼前','我们要学习他刻苦钻研的精神','秋天的北京是美丽的季节'], ans: 2 },
+    { q: '"纸上得来终觉浅，绝知此事要躬行"强调的是：', opts: ['实践的重要性','读书无用','写文章要简洁','学习要勤奋'], ans: 0 },
+    { q: '成语"不刊之论"的意思是：', opts: ['不能刊登的文章','不能改动的正确言论','不好的言论','不能讨论的话题'], ans: 1 },
+    { q: '"这个方案___可行。" 最恰当的填入是：', opts: ['切实','确实','真实','结实'], ans: 0 },
+    { q: '下列词语中"表"字用法不同的一项是：', opts: ['表面','表达','表格','表扬'], ans: 0 },
+    { q: '"差强人意"的意思是：', opts: ['让人不满意','大体上还能让人满意','差得让人愤怒','勉强让人同意'], ans: 1 },
+    { q: '下列各句中加点成语使用正确的一项是：', opts: ['他妄自菲薄别人','这件事耿耿于怀','他的事迹感人肺腑','大家沸反盈天'], ans: 2 },
+    { q: '"首当其冲"的意思是：', opts: ['第一个冲上去','首先受到冲击','冲锋在前','当仁不让'], ans: 1 },
+    { q: '下列没有歧义的句子是：', opts: ['他借我500元','我要炒肉丝','开刀的是他的父亲','咬死了猎人的狗'], ans: 1 },
+    { q: '"不以为然"中的"然"意思是：', opts: ['这样','然后','对的','然而'], ans: 2 },
+    { q: '下列句子修辞手法判断正确的是："飞流直下三千尺"', opts: ['夸张','比喻','拟人','排比'], ans: 0 },
+    { q: '"明日黄花"比喻的是：', opts: ['未来的美好','过时的事物','新鲜事物','明日的计划'], ans: 1 },
+    { q: '"三人行必有我师"出自：', opts: ['《论语》','《孟子》','《大学》','《中庸》'], ans: 0 },
+    { q: '"沉鱼落雁，闭月羞花"分别指：', opts: ['西施、王昭君、貂蝉、杨玉环','王昭君、西施、杨玉环、貂蝉','貂蝉、杨玉环、西施、王昭君','杨玉环、貂蝉、王昭君、西施'], ans: 0 },
+    { q: '"望其项背"常用于否定句，表示：', opts: ['能够追赶','追赶不上','望尘莫及','不屑一顾'], ans: 1 },
+    { q: '下列加点字读音全都正确的一项是：', opts: ['称(chèn)心','处(chù)理','模(mó)样','角(jiǎo)色'], ans: 0 },
+    { q: '"不胫而走"一般形容：', opts: ['人跑得快','消息传得快','东西丢了','腿受伤了'], ans: 1 },
+    { q: '"空穴来风"现在常被误用为"没有根据"，原意是：', opts: ['没有根据','有根据','风吹来','空荡荡'], ans: 1 },
+    { q: '"一言以蔽之"的"蔽"意思是：', opts: ['遮盖','概括','隐瞒','屏蔽'], ans: 1 },
+    { q: '下列关联词使用正确的是：', opts: ['因为…所以…才对','虽然…但是…也行','不但…而且…还','即使…也…反而'], ans: 2 },
+    { q: '"洛阳纸贵"是因为谁的作品：', opts: ['左思《三都赋》','曹植《洛神赋》','李白《将进酒》','杜甫《春望》'], ans: 0 },
+    { q: '"汗牛充栋"形容的是：', opts: ['人很多','书很多','钱很多','房子很大'], ans: 1 },
+    { q: '下列哪项不是鲁迅的作品：', opts: ['《呐喊》','《彷徨》','《子夜》','《朝花夕拾》'], ans: 2 },
+    { q: '"杏林"代指：', opts: ['医学界','教育界','文学界','武术界'], ans: 0 },
+    { q: '"七月流火"中的"火"指的是：', opts: ['火星','大火','炎热','心火'], ans: 0 },
+  ],
+  math: [
+    { q: '2, 5, 10, 17, 26, ? 下一个数是：', opts: ['37','35','36','38'], ans: 0 },
+    { q: '1, 1, 2, 3, 5, 8, ? 下一个数是：', opts: ['11','12','13','14'], ans: 2 },
+    { q: '3, 9, 27, 81, ? 下一个数是：', opts: ['162','243','324','216'], ans: 1 },
+    { q: '甲乙两人同时从A地出发去B地，甲每小时走5km，乙每小时走3km，甲到达B地后立即返回，在离B地10km处遇到乙，AB距离为：', opts: ['30km','40km','25km','35km'], ans: 1 },
+    { q: '某班有50人，会游泳的有28人，会打球的有32人，两样都不会的有6人，两样都会的有：', opts: ['16人','14人','18人','12人'], ans: 0 },
+    { q: '2, 6, 12, 20, 30, ? 下一个数是：', opts: ['40','42','44','36'], ans: 1 },
+    { q: '一个水池有两个进水管，甲管单独注满需6小时，乙管单独注满需8小时，两管同时开需几小时？', opts: ['24/7','3.5','4','7/24'], ans: 0 },
+    { q: '100以内能被3或5整除的数有多少个？', opts: ['47','46','53','48'], ans: 1 },
+    { q: '某商品打8折后售价240元，原价为：', opts: ['300元','288元','320元','280元'], ans: 0 },
+    { q: '等差数列首项为3，公差为4，第10项为：', opts: ['39','43','36','40'], ans: 0 },
+    { q: '1, 4, 9, 16, 25, ? 下一个数是：', opts: ['30','36','49','64'], ans: 1 },
+    { q: '甲比乙大4岁，5年前甲的年龄是乙的2倍，甲今年多少岁？', opts: ['13','14','12','15'], ans: 0 },
+    { q: '把一根木头锯成5段需要20分钟，锯成10段需要：', opts: ['40分钟','45分钟','50分钟','36分钟'], ans: 1 },
+    { q: '从1到100的和是：', opts: ['5050','5000','4950','5100'], ans: 0 },
+    { q: '某数除以3余1，除以5余2，除以7余3，这个数最小是：', opts: ['52','53','54','55'], ans: 0 },
+    { q: '一个正方形的对角线长为10√2，其面积为：', opts: ['100','200','50','150'], ans: 1 },
+    { q: '1, 8, 27, 64, 125, ? 下一个数是：', opts: ['216','256','196','343'], ans: 0 },
+    { q: '甲3天完成的工作，乙需5天，甲乙合作1天完成全部的：', opts: ['8/15','1/8','5/8','15/8'], ans: 0 },
+    { q: '6个人排成一排，甲乙两人必须相邻的排列数为：', opts: ['240','120','480','360'], ans: 0 },
+    { q: '从5个男生4个女生中选3人，至少1名女生的选法有几种？', opts: ['74','80','84','70'], ans: 0 },
+    { q: '等比数列首项为2，公比为3，第5项为：', opts: ['162','54','486','18'], ans: 0 },
+    { q: '甲乙两人从相距100km的两地同时出发相向而行，甲每小时走6km，乙每小时走4km，几小时后相遇？', opts: ['10','8','12','15'], ans: 0 },
+    { q: '一本书共300页，数字"1"在页码中出现多少次？', opts: ['160','161','159','162'], ans: 0 },
+    { q: '一个两位数，十位数字是个位数字的2倍，若将两位数字对调，则比原数小27，原数为：', opts: ['63','42','84','64'], ans: 0 },
+    { q: '鸡兔同笼，共35个头，94只脚，兔有几只？', opts: ['12','10','15','13'], ans: 0 },
+    { q: '100!末尾有几个零？', opts: ['24','25','20','22'], ans: 0 },
+    { q: '某数的3倍加5等于20，这个数是：', opts: ['5','6','4','7'], ans: 0 },
+    { q: '三角形三边分别为3、4、5，面积为：', opts: ['6','10','7.5','12'], ans: 0 },
+    { q: '甲、乙、丙三人分100元，甲比乙多10元，乙比丙多10元，甲得：', opts: ['40','50','45','35'], ans: 0 },
+    { q: '一个圆的面积为36π，其周长为：', opts: ['12π','6π','36π','24π'], ans: 0 },
+  ],
+  logic: [
+    { q: '所有A都是B，所有B都是C，那么：', opts: ['所有A都是C','有些A不是C','所有C都是A','无法判断'], ans: 0 },
+    { q: 'A>B, B>C, C>D，以下正确的是：', opts: ['A>D','D>A','A=D','无法比较'], ans: 0 },
+    { q: '如果"所有程序员都会写代码"为真，则以下哪项必然为真？', opts: ['会写代码的都是程序员','有些会写代码的是程序员','不会写代码的不是程序员','程序员只会写代码'], ans: 2 },
+    { q: '甲说："乙在说谎。"乙说："丙在说谎。"丙说："甲和乙都在说谎。"三人中说真话的是：', opts: ['甲','乙','丙','无法确定'], ans: 1 },
+    { q: '1, 2, 4, 8, 16, ? 下一个图形推理数列：', opts: ['24','32','20','28'], ans: 1 },
+    { q: '并非所有的鸟都会飞，以下哪项与之等价？', opts: ['所有鸟都不会飞','有些鸟不会飞','会飞的不是鸟','有些鸟会飞'], ans: 1 },
+    { q: '如果P则Q，非Q，则：', opts: ['非P','P','无法判断','Q'], ans: 0 },
+    { q: 'A、B、C三人中只有一人做了好事。A说"是B做的"，B说"不是我做的"，C说"不是我做的"。已知只有一人说真话，做好事的是：', opts: ['A','B','C','无法判断'], ans: 2 },
+    { q: '某公司所有部门经理都通过了MBA考试，小王通过了MBA考试，所以：', opts: ['小王是部门经理','小王可能是部门经理','无法确定小王是否是部门经理','小王不是部门经理'], ans: 2 },
+    { q: '类比推理：医生 : 医院 :: 教师 : ?', opts: ['学校','学生','课本','黑板'], ans: 0 },
+    { q: '类比推理：钢笔 : 文具 :: 苹果 : ?', opts: ['水果','红色','树','汁'], ans: 0 },
+    { q: '如果"小明去了北京"是假的，那么：', opts: ['小明没去北京','小明去了上海','小明去了其他地方','以上都有可能'], ans: 0 },
+    { q: 'A或B至少有一个为真，A为假，则：', opts: ['B为真','B为假','无法判断','A为真'], ans: 0 },
+    { q: '类比推理：汽车 : 交通 :: 书籍 : ?', opts: ['知识','图书馆','阅读','印刷'], ans: 0 },
+    { q: '甲、乙、丙三人分别是北京、上海、广州人。甲不是北京人，乙不是上海人，北京人不是丙。甲是哪里人？', opts: ['上海','广州','北京','无法判断'], ans: 0 },
+    { q: '如果"所有S都是P"为假，则以下哪项为真？', opts: ['所有S都不是P','有些S不是P','所有P都是S','有些P不是S'], ans: 1 },
+    { q: '推理：大前提"所有人都会死"，小前提"苏格拉底是人"，结论是：', opts: ['苏格拉底会死','苏格拉底不会死','无法判断','人不一定会死'], ans: 0 },
+    { q: '类比推理：温度计 : 温度 :: 秤 : ?', opts: ['重量','天平','砝码','测量'], ans: 0 },
+    { q: '已知：有些A是B，有些B是C。可以推出：', opts: ['有些A是C','所有A都是C','无法确定A与C的关系','所有C都是A'], ans: 2 },
+    { q: '一个正方体展开后，最多有几个面相邻？', opts: ['4','5','6','3'], ans: 1 },
+    { q: '甲乙丙丁四人赛跑，甲不是最快的也不是最慢的，乙比丙快，丁不是最慢的。最快的可能是：', opts: ['乙','甲','丁','丙'], ans: 0 },
+    { q: '除非下雨，否则我去跑步。以下哪项等价？', opts: ['如果我不去跑步，则下雨了','如果下雨，我就去跑步','我去跑步当且仅当不下雨','不下雨我就一定去跑步'], ans: 0 },
+    { q: '类比推理：键盘 : 打字 :: 鼠标 : ?', opts: ['点击','电脑','输入','光标'], ans: 0 },
+    { q: '逻辑等价：¬(P∧Q) 等价于：', opts: ['¬P∨¬Q','¬P∧¬Q','P∨Q','P∧Q'], ans: 0 },
+    { q: '五个人排队，甲不在第一个，乙不在最后一个，共有几种排法？', opts: ['78','72','96','108'], ans: 0 },
+    { q: '如果"A且B"为假，以下哪项一定为真？', opts: ['A假或B假','A和B都假','A假B真','A真B假'], ans: 0 },
+    { q: '类比推理：医生 : 病人 :: 律师 : ?', opts: ['当事人','法官','法律','案件'], ans: 0 },
+    { q: '三段论：M都是P，S都是M，结论：', opts: ['S都是P','P都是S','S都不是P','无法判断'], ans: 0 },
+    { q: '已知"如果某人诚实，则他说真话"，以下哪项等价？', opts: ['如果某人说假话，则他不诚实','诚实的人都说真话','说真话的人一定诚实','不诚实的人不说真话'], ans: 0 },
+    { q: '类比推理：照片 : 相机 :: 文章 : ?', opts: ['笔','纸','墨水','脑子'], ans: 0 },
+  ],
+  data: [
+    { q: '某市2023年GDP为2000亿，2024年为2200亿，增长率为：', opts: ['10%','20%','11%','9%'], ans: 0 },
+    { q: '某企业去年利润100万，今年利润150万，增长率为：', opts: ['50%','150%','33%','67%'], ans: 0 },
+    { q: '一产占GDP比重为10%，GDP总量5000亿，则一产为：', opts: ['500亿','50亿','100亿','5000亿'], ans: 0 },
+    { q: '某商品价格从100元涨到120元，涨幅为：', opts: ['20%','120%','25%','16.7%'], ans: 0 },
+    { q: '2024年产量1200吨，同比增长20%，2023年产量为：', opts: ['1000吨','960吨','1440吨','1080吨'], ans: 0 },
+    { q: 'A是B的1.5倍，则B是A的：', opts: ['2/3','1/2','3/2','1/3'], ans: 0 },
+    { q: '某班60人，男生占40%，女生人数为：', opts: ['36人','24人','40人','30人'], ans: 0 },
+    { q: '销售额第一季度300万，第二季度增长10%，第二季度为：', opts: ['330万','310万','320万','340万'], ans: 0 },
+    { q: '某产品2023年市场份额为25%，2024年为30%，提高了几个百分点？', opts: ['5','20','16.7','4'], ans: 0 },
+    { q: '同比是指：', opts: ['与去年同期相比','与上月相比','与计划相比','与历史最好水平相比'], ans: 0 },
+    { q: '环比是指：', opts: ['与上一个统计周期相比','与去年同期相比','与年初相比','与基期相比'], ans: 0 },
+    { q: '平均数增长率公式为（假设总量增长a%，份数增长b%）：', opts: ['(a-b)/(1+b)','(a+b)/(1-b)','a-b','a/b-1'], ans: 0 },
+    { q: 'A值为60，B值为40，A比B多：', opts: ['50%','20%','33.3%','25%'], ans: 0 },
+    { q: 'B值为40，A值为60，B比A少：', opts: ['33.3%','50%','20%','25%'], ans: 0 },
+    { q: '恩格尔系数是指食品支出占总支出的比重，恩格尔系数越低说明：', opts: ['生活水平越高','生活水平越低','食品质量越好','消费越少'], ans: 0 },
+    { q: '某市人口从100万增长到110万，年均增长率为5%，按此增长率2年后人口约为：', opts: ['115.5万','120万','121万','110万'], ans: 2 },
+    { q: '基尼系数衡量的是：', opts: ['收入分配差距','物价水平','经济增长速度','失业率'], ans: 0 },
+    { q: 'CPI上涨3%意味着：', opts: ['物价总体上涨3%','收入上涨3%','GDP上涨3%','利率上涨3%'], ans: 0 },
+    { q: '倍数计算：A是B的3倍，C是B的2倍，A是C的几倍？', opts: ['1.5倍','3倍','2倍','6倍'], ans: 0 },
+    { q: '比重变化：部分增长率为15%，整体增长率为10%，则比重：', opts: ['上升','下降','不变','无法判断'], ans: 0 },
+    { q: '某企业2023年员工500人，2024年增加到550人，增长率为：', opts: ['10%','50%','5%','91%'], ans: 0 },
+    { q: '已知2024年总量为1500，同比增长25%，2023年总量为：', opts: ['1200','1250','1125','1000'], ans: 0 },
+    { q: '已知比重为40%，整体为2000，则部分值为：', opts: ['800','400','600','1200'], ans: 0 },
+    { q: '已知A/B=2.5，B=400，则A为：', opts: ['1000','800','600','160'], ans: 0 },
+    { q: '翻一番是指变为原来的：', opts: ['2倍','1倍','3倍','4倍'], ans: 0 },
+    { q: '翻两番是指变为原来的：', opts: ['4倍','2倍','8倍','3倍'], ans: 0 },
+    { q: '某商品原价200元，先涨价10%再降价10%，现价为：', opts: ['198元','200元','202元','196元'], ans: 0 },
+    { q: '增长率从5%提高到8%，提高了几个百分点？', opts: ['3','60','37.5','5'], ans: 0 },
+    { q: '已知月均值为120，年总量为：', opts: ['1440','1200','1560','1320'], ans: 0 },
+    { q: '2024年人口增长率3‰，人口基数1000万，增长了：', opts: ['3万人','30万人','3千人','300人'], ans: 0 },
+  ],
+  common: [
+    { q: '我国宪法规定，中华人民共和国的一切权力属于：', opts: ['人民','公民','国家','政府'], ans: 0 },
+    { q: '"一带一路"是指：', opts: ['丝绸之路经济带和21世纪海上丝绸之路','一条铁路和一条公路','一带一路国家联盟','一带一路贸易协定'], ans: 0 },
+    { q: '中国特色社会主义最本质的特征是：', opts: ['中国共产党领导','人民当家作主','依法治国','改革开放'], ans: 0 },
+    { q: '光年是什么单位？', opts: ['距离单位','时间单位','速度单位','亮度单位'], ans: 0 },
+    { q: '我国第一部宪法颁布于：', opts: ['1954年','1949年','1975年','1982年'], ans: 0 },
+    { q: 'DNA的中文名称是：', opts: ['脱氧核糖核酸','核糖核酸','氨基酸','蛋白质'], ans: 0 },
+    { q: '中国共产党的初心和使命是：', opts: ['为中国人民谋幸福，为中华民族谋复兴','实现共产主义','发展经济','维护世界和平'], ans: 0 },
+    { q: '地球绕太阳公转一周大约需要：', opts: ['365天','30天','24小时','7天'], ans: 0 },
+    { q: '我国的最高国家权力机关是：', opts: ['全国人民代表大会','国务院','最高人民法院','全国政协'], ans: 0 },
+    { q: '水的化学式是：', opts: ['H₂O','CO₂','O₂','NaCl'], ans: 0 },
+    { q: '社会主义核心价值观中属于社会层面的是：', opts: ['自由、平等、公正、法治','富强、民主、文明、和谐','爱国、敬业、诚信、友善','以上都不是'], ans: 0 },
+    { q: '我国面积最大的省级行政区是：', opts: ['新疆','西藏','内蒙古','青海'], ans: 0 },
+    { q: 'GDP是指：', opts: ['国内生产总值','国民生产总值','人均国内生产总值','经济增长率'], ans: 0 },
+    { q: '光在真空中的传播速度约为：', opts: ['3×10⁸m/s','3×10⁶m/s','3×10¹⁰m/s','3×10⁵m/s'], ans: 0 },
+    { q: '我国的国歌是：', opts: ['《义勇军进行曲》','《黄河大合唱》','《歌唱祖国》','《我和我的祖国》'], ans: 0 },
+    { q: '世界贸易组织的英文缩写是：', opts: ['WTO','WHO','WMO','WIPO'], ans: 0 },
+    { q: '联合国总部位于：', opts: ['纽约','日内瓦','巴黎','伦敦'], ans: 0 },
+    { q: '我国最长的河流是：', opts: ['长江','黄河','珠江','黑龙江'], ans: 0 },
+    { q: '《共产党宣言》的作者是：', opts: ['马克思和恩格斯','列宁','毛泽东','斯大林'], ans: 0 },
+    { q: '太阳系中最大的行星是：', opts: ['木星','土星','天王星','海王星'], ans: 0 },
+    { q: '我国的政党制度是：', opts: ['中国共产党领导的多党合作和政治协商制度','两党制','多党制','一党制'], ans: 0 },
+    { q: '二十四节气中，白天最长的是：', opts: ['夏至','冬至','春分','秋分'], ans: 0 },
+    { q: '人民币的发行机构是：', opts: ['中国人民银行','财政部','中国银行','工商银行'], ans: 0 },
+    { q: '我国人口最多的少数民族是：', opts: ['壮族','回族','满族','维吾尔族'], ans: 0 },
+    { q: '蓝牙技术的名称来源于：', opts: ['丹麦国王哈拉尔德','蓝色牙齿','一种鸟','一个公司名'], ans: 0 },
+    { q: '人体最大的器官是：', opts: ['皮肤','肝脏','大脑','心脏'], ans: 0 },
+    { q: '"三权分立"中的三权不包括：', opts: ['军权','立法权','行政权','司法权'], ans: 0 },
+    { q: '我国的政体是：', opts: ['人民代表大会制度','总统制','议会制','君主立宪制'], ans: 0 },
+    { q: '光合作用的原料是：', opts: ['二氧化碳和水','氧气和水','二氧化碳和氧气','氮气和水'], ans: 0 },
+    { q: '中国共产党成立于：', opts: ['1921年','1919年','1949年','1927年'], ans: 0 },
+  ]
+};
+
+// Shuffle answers but track correct one
+function prepareQuestion(q) {
+  const correctText = q.opts[q.ans];
+  const shuffled = [...q.opts].sort(() => Math.random() - 0.5);
+  return {
+    q: q.q,
+    opts: shuffled,
+    correctIndex: shuffled.indexOf(correctText)
+  };
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let state = {
+  running: false,
+  category: '',
+  level: 1,
+  hp: 10,
+  maxHp: 10,
+  score: 0,
+  player: { x: 0, y: 0, w: 40, h: 50, speed: 6, targetX: 0 },
+  items: [],       // falling answer items
+  currentQ: null,  // current question
+  questionActive: false,
+  particles: [],
+  bgStars: [],
+  bgOffset: 0,
+  combo: 0,
+  maxCombo: 0,
+  totalCorrect: 0,
+  totalWrong: 0,
+  fallingSpeed: 1.8,
+  questionTimer: 0,
+};
+
+// Input
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  keys[e.code] = true;
+});
+window.addEventListener('keyup', e => {
+  keys[e.key] = false;
+  keys[e.code] = false;
+});
+
+// Mobile controls
+let touchLeft = false, touchRight = false;
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+btnLeft.addEventListener('touchstart', e => { e.preventDefault(); touchLeft = true; });
+btnLeft.addEventListener('touchend', e => { touchLeft = false; });
+btnRight.addEventListener('touchstart', e => { e.preventDefault(); touchRight = true; });
+btnRight.addEventListener('touchend', e => { touchRight = false; });
+
+// ============================================================
+// BACKGROUND STARS
+// ============================================================
+function initStars() {
+  state.bgStars = [];
+  for (let i = 0; i < 120; i++) {
+    state.bgStars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      speed: Math.random() * 0.5 + 0.1,
+      alpha: Math.random() * 0.7 + 0.3,
+    });
+  }
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showCategoryMenu() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('menu-screen').style.display = 'flex';
+}
+
+function startGame(cat) {
+  state.category = cat;
+  state.level = 1;
+  state.hp = 10;
+  state.maxHp = 10;
+  state.score = 0;
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.totalCorrect = 0;
+  state.totalWrong = 0;
+  state.fallingSpeed = 1.8;
+  state.player.x = canvas.width / 2 - 20;
+  state.player.y = canvas.height - 90;
+  state.items = [];
+  state.particles = [];
+  state.questionActive = false;
+  state.running = true;
+
+  document.getElementById('menu-screen').style.display = 'none';
+  document.getElementById('ui-overlay').style.display = 'block';
+  document.getElementById('gameover-screen').style.display = 'none';
+  document.getElementById('win-screen').style.display = 'none';
+  document.getElementById('question-box').style.display = 'none';
+
+  initStars();
+  updateHUD();
+  spawnNextQuestion();
+  requestAnimationFrame(gameLoop);
+}
+
+function backToMenu() {
+  state.running = false;
+  document.getElementById('ui-overlay').style.display = 'none';
+  document.getElementById('gameover-screen').style.display = 'none';
+  document.getElementById('win-screen').style.display = 'none';
+  document.getElementById('menu-screen').style.display = 'flex';
+}
+
+function gameOver() {
+  state.running = false;
+  document.getElementById('gameover-screen').style.display = 'flex';
+  document.getElementById('gameover-stats').innerHTML =
+    `到达 <span>第 ${state.level} 关</span><br>` +
+    `答对 <span>${state.totalCorrect}</span> 题 · 答错 <span>${state.totalWrong}</span> 题<br>` +
+    `最高连击 <span>${state.maxCombo} 连击</span>`;
+}
+
+function winGame() {
+  state.running = false;
+  document.getElementById('win-screen').style.display = 'flex';
+  document.getElementById('win-stats').innerHTML =
+    `恭喜你完成了 <span style="color:#ffd700;font-weight:700">100关</span> 全部挑战！<br>` +
+    `总答对 <span style="color:#7bed9f;font-weight:700">${state.totalCorrect}</span> 题<br>` +
+    `最高连击 <span style="color:#ffd700;font-weight:700">${state.maxCombo}</span> 连击<br>` +
+    `你就是行走的题库！🏆`;
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  document.getElementById('level-display').textContent = `第 ${state.level} 关`;
+  document.getElementById('hp-bar').style.width = `${(state.hp / state.maxHp) * 100}%`;
+  document.getElementById('hp-text').textContent = state.hp;
+  document.getElementById('score-display').textContent = `✅ ${state.totalCorrect}`;
+
+  const hpBar = document.getElementById('hp-bar');
+  if (state.hp <= 3) {
+    hpBar.style.background = 'linear-gradient(90deg, #ff0000, #ff4444)';
+  } else if (state.hp <= 6) {
+    hpBar.style.background = 'linear-gradient(90deg, #ff8c00, #ffa500)';
+  } else {
+    hpBar.style.background = 'linear-gradient(90deg, #ff4757, #ff6b81)';
+  }
+}
+
+function showHudMsg(text, color) {
+  const el = document.getElementById('hud-msg');
+  el.textContent = text;
+  el.style.color = color;
+  el.style.opacity = 1;
+  setTimeout(() => { el.style.opacity = 0; }, 800);
+}
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    state.particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6 - 2,
+      r: Math.random() * 4 + 2,
+      color,
+      life: 1,
+    });
+  }
+}
+
+// ============================================================
+// QUESTIONS & ITEMS
+// ============================================================
+function spawnNextQuestion() {
+  if (state.level > 100) {
+    winGame();
+    return;
+  }
+
+  const bank = QUESTIONS[state.category];
+  const rawQ = bank[Math.floor(Math.random() * bank.length)];
+  state.currentQ = prepareQuestion(rawQ);
+
+  // Show question
+  const qb = document.getElementById('question-box');
+  qb.style.display = 'block';
+  document.getElementById('question-category').textContent =
+    { language: '📖 言语理解', math: '🔢 数量关系', logic: '🧩 判断推理', data: '📊 资料分析', common: '🌍 常识判断' }[state.category];
+  document.getElementById('question-text').textContent = state.currentQ.q;
+
+  // Spawn falling items (4 answers at top)
+  state.items = [];
+  const slotW = canvas.width / 4;
+  const indices = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < 4; i++) {
+    state.items.push({
+      x: slotW * i + slotW / 2,
+      y: -60 - Math.random() * 80,
+      w: slotW - 20,
+      h: 44,
+      text: state.currentQ.opts[indices[i]],
+      isCorrect: indices[i] === state.currentQ.correctIndex,
+      speed: state.fallingSpeed + Math.random() * 0.3,
+      slot: i,
+      active: true,
+    });
+  }
+
+  state.questionActive = true;
+}
+
+function handleCatch(item) {
+  if (!state.questionActive) return;
+  state.questionActive = false;
+
+  if (item.isCorrect) {
+    state.hp = Math.min(state.hp + 1, state.maxHp);
+    state.score++;
+    state.combo++;
+    state.totalCorrect++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    state.fallingSpeed = Math.min(1.8 + state.level * 0.04, 5);
+
+    spawnParticles(item.x, item.y, '#7bed9f', 15);
+    showHudMsg(state.combo >= 3 ? `+1 ❤️ ${state.combo}连击！` : '+1 ❤️', '#7bed9f');
+  } else {
+    state.hp -= 5;
+    state.combo = 0;
+    state.totalWrong++;
+
+    spawnParticles(item.x, item.y, '#ff4757', 20);
+    showHudMsg('-5 💀 正确答案是：' + state.currentQ.opts[state.currentQ.correctIndex], '#ff4757');
+
+    if (state.hp <= 0) {
+      state.hp = 0;
+      updateHUD();
+      setTimeout(gameOver, 600);
+      return;
+    }
+  }
+
+  updateHUD();
+
+  // Deactivate all items
+  state.items.forEach(it => it.active = false);
+
+  setTimeout(() => {
+    if (!state.running) return;
+    state.level++;
+    document.getElementById('question-box').style.display = 'none';
+    updateHUD();
+    setTimeout(() => spawnNextQuestion(), 400);
+  }, 1200);
+}
+
+// ============================================================
+// PLAYER DRAW
+// ============================================================
+function drawPlayer() {
+  const p = state.player;
+  const cx = p.x + p.w / 2;
+  const cy = p.y;
+
+  // Body (graduation cap student)
+  ctx.save();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx, canvas.height - 35, 22, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body (suit/formal)
+  ctx.fillStyle = '#2f3542';
+  ctx.beginPath();
+  ctx.roundRect(p.x + 8, cy + 20, 24, 24, 4);
+  ctx.fill();
+
+  // White shirt
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.roundRect(p.x + 15, cy + 22, 10, 12, 2);
+  ctx.fill();
+
+  // Tie
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 22);
+  ctx.lineTo(cx - 3, cy + 32);
+  ctx.lineTo(cx, cy + 36);
+  ctx.lineTo(cx + 3, cy + 32);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = '#ffeaa7';
+  ctx.beginPath();
+  ctx.arc(cx, cy + 12, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes
+  ctx.fillStyle = '#2d3436';
+  ctx.beginPath();
+  ctx.arc(cx - 4, cy + 10, 2, 0, Math.PI * 2);
+  ctx.arc(cx + 4, cy + 10, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Smile
+  ctx.strokeStyle = '#e17055';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy + 14, 4, 0.1 * Math.PI, 0.9 * Math.PI);
+  ctx.stroke();
+
+  // Graduation cap
+  ctx.fillStyle = '#2d3436';
+  ctx.beginPath();
+  ctx.moveTo(cx - 16, cy + 3);
+  ctx.lineTo(cx + 16, cy + 3);
+  ctx.lineTo(cx + 12, cy - 2);
+  ctx.lineTo(cx - 12, cy - 2);
+  ctx.closePath();
+  ctx.fill();
+  // Cap top
+  ctx.fillRect(cx - 14, cy - 5, 28, 4);
+  // Tassel
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx + 14, cy - 3);
+  ctx.lineTo(cx + 18, cy + 8);
+  ctx.stroke();
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(cx + 18, cy + 9, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = '#2f3542';
+  ctx.fillRect(p.x + 12, cy + 44, 6, 8);
+  ctx.fillRect(p.x + 22, cy + 44, 6, 8);
+
+  // Shoes
+  ctx.fillStyle = '#636e72';
+  ctx.beginPath();
+  ctx.roundRect(p.x + 10, cy + 50, 10, 5, 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(p.x + 20, cy + 50, 10, 5, 2);
+  ctx.fill();
+
+  // Pencil in hand
+  ctx.save();
+  ctx.translate(p.x + 32, cy + 28);
+  ctx.rotate(-0.3);
+  ctx.fillStyle = '#fdcb6e';
+  ctx.fillRect(0, 0, 4, 18);
+  ctx.fillStyle = '#e17055';
+  ctx.fillRect(0, 0, 4, 3);
+  ctx.fillStyle = '#2d3436';
+  ctx.beginPath();
+  ctx.moveTo(0, 18);
+  ctx.lineTo(2, 22);
+  ctx.lineTo(4, 18);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ============================================================
+// ITEM DRAW
+// ============================================================
+function drawItem(item) {
+  if (!item.active) return;
+
+  const cx = item.x;
+  const cy = item.y;
+  const hw = item.w / 2;
+
+  // Glow
+  const glow = item.isCorrect ? 'rgba(123,237,159,0.15)' : 'rgba(255,71,87,0.15)';
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.roundRect(cx - hw - 4, cy - 4, item.w + 8, item.h + 8, 14);
+  ctx.fill();
+
+  // Background
+  const bg = item.isCorrect
+    ? 'rgba(46,213,115,0.25)'
+    : 'rgba(255,71,87,0.25)';
+  const border = item.isCorrect
+    ? 'rgba(46,213,115,0.6)'
+    : 'rgba(255,71,87,0.6)';
+
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(cx - hw, cy, item.w, item.h, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  // Text
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Truncate text if too long
+  let text = item.text;
+  if (ctx.measureText(text).width > item.w - 16) {
+    while (ctx.measureText(text + '…').width > item.w - 16 && text.length > 1) {
+      text = text.slice(0, -1);
+    }
+    text += '…';
+  }
+  ctx.fillText(text, cx, cy + item.h / 2);
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+let lastTime = 0;
+function gameLoop(timestamp) {
+  if (!state.running) return;
+
+  const dt = Math.min((timestamp - lastTime) / 16.67, 3); // normalize to ~60fps
+  lastTime = timestamp;
+
+  // Clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, '#0a0e27');
+  grad.addColorStop(0.5, '#141852');
+  grad.addColorStop(1, '#1a1f4e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Stars
+  state.bgOffset += 0.3 * dt;
+  state.bgStars.forEach(s => {
+    s.y += s.speed * dt;
+    if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+    ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Ground
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+  ctx.strokeStyle = 'rgba(255,215,0,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height - 35);
+  ctx.lineTo(canvas.width, canvas.height - 35);
+  ctx.stroke();
+
+  // Player movement
+  const p = state.player;
+  const moveLeft = keys['ArrowLeft'] || keys['a'] || keys['A'] || keys['KeyA'] || touchLeft;
+  const moveRight = keys['ArrowRight'] || keys['d'] || keys['D'] || keys['KeyD'] || touchRight;
+  if (moveLeft) p.x -= p.speed * dt;
+  if (moveRight) p.x += p.speed * dt;
+  p.x = Math.max(0, Math.min(canvas.width - p.w, p.x));
+
+  // Update items
+  if (state.questionActive) {
+    state.items.forEach(item => {
+      if (!item.active) return;
+      item.y += item.speed * dt;
+
+      // Check collision with player
+      if (
+        item.y + item.h > p.y &&
+        item.y < p.y + p.h &&
+        item.x + item.w / 2 > p.x &&
+        item.x - item.w / 2 < p.x + p.w
+      ) {
+        handleCatch(item);
+      }
+
+      // Off screen = missed
+      if (item.y > canvas.height) {
+        item.active = false;
+        // If correct answer missed, count as wrong-ish, just move on
+        if (item.isCorrect && state.questionActive) {
+          state.questionActive = false;
+          state.hp -= 3;
+          state.combo = 0;
+          state.totalWrong++;
+          spawnParticles(p.x + p.w / 2, p.y, '#ffa502', 12);
+          showHudMsg('漏掉了！-3 ❤️', '#ffa502');
+          updateHUD();
+          if (state.hp <= 0) {
+            state.hp = 0;
+            updateHUD();
+            setTimeout(gameOver, 600);
+            return;
+          }
+          setTimeout(() => {
+            if (!state.running) return;
+            state.level++;
+            document.getElementById('question-box').style.display = 'none';
+            updateHUD();
+            setTimeout(() => spawnNextQuestion(), 400);
+          }, 800);
+        }
+      }
+    });
+  }
+
+  // Draw items
+  state.items.forEach(drawItem);
+
+  // Draw player
+  drawPlayer();
+
+  // Particles
+  state.particles = state.particles.filter(pt => {
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.vy += 0.15;
+    pt.life -= 0.025;
+    if (pt.life <= 0) return false;
+    ctx.globalAlpha = pt.life;
+    ctx.fillStyle = pt.color;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, pt.r * pt.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    return true;
+  });
+
+  // Combo display
+  if (state.combo >= 2) {
+    ctx.save();
+    ctx.font = `bold ${14 + state.combo * 2}px "Noto Sans SC", sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = `rgba(255,215,0,${0.5 + Math.sin(timestamp / 300) * 0.3})`;
+    ctx.fillText(`🔥 ${state.combo} 连击`, canvas.width - 20, canvas.height - 50);
+    ctx.restore();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// roundRect polyfill
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r];
+    const rad = r[0] || 0;
+    this.moveTo(x + rad, y);
+    this.arcTo(x + w, y, x + w, y + h, rad);
+    this.arcTo(x + w, y + h, x, y + h, rad);
+    this.arcTo(x, y + h, x, y, rad);
+    this.arcTo(x, y, x + w, y, rad);
+    this.closePath();
+  };
+}
+
+// Init
+initStars();
+// Draw initial background
+function drawBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, '#0a0e27');
+  grad.addColorStop(0.5, '#141852');
+  grad.addColorStop(1, '#1a1f4e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  state.bgStars.forEach(s => {
+    ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+drawBg();
+</script>
+</body>
+</html>
