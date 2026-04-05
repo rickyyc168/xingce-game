@@ -753,7 +753,8 @@ function showStory() {
     const delay = parseInt(line.dataset.delay) || 0;
     setTimeout(() => {
       line.classList.add('visible');
-      // 不自动滚动，让文字自然从上往下出现
+      // 自动滚动到最新出现的文字
+      line.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, delay);
   });
 
