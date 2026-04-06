@@ -1,6 +1,11 @@
 // Vercel Serverless Function - 排行榜 API
-// 使用 Vercel KV 存储
-import { kv } from '@vercel/kv';
+// 使用 Upstash Redis 存储
+import { Redis } from '@upstash/redis';
+
+const kv = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           .slice(0, 50);
       }
 
-      await kv.set('leaderboard', JSON.stringify(lb));
+      await kv.set('leaderboard', lb);
       return res.status(200).json({ ok: true });
     } catch (e) {
       return res.status(500).json({ error: e.message });
