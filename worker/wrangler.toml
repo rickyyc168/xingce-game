@@ -1,0 +1,7 @@
+name = "xingce-leaderboard"
+main = "index.js"
+compatibility_date = "2024-09-23"
+
+[[kv_namespaces]]
+binding = "LB"
+id = "替换成你的_KV_ID"

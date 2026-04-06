@@ -1283,17 +1283,17 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // RANKING SYSTEM (Cloudflare Worker + KV + localStorage cache)
 // ============================================================
 // Worker 地址 - 部署后改成你的 Worker 域名
-const API_BASE = 'https://xingce-leaderboard.yyc479265439.workers.dev';
+const API_BASE = '';
 
 // 从 Worker 拉取排行榜（数据按分类存储）
 function fetchLeaderboardFromWorker() {
-  return fetch(API_BASE + '/leaderboard')
+  return fetch('/api/leaderboard')
     .then(function(res) {
-      if (!res.ok) throw new Error('Worker fetch ' + res.status);
+      if (!res.ok) throw new Error('fetch ' + res.status);
       return res.json();
     })
     .then(function(data) {
-      // Worker 返回 { language: [], math: [], ... } 格式
+      // API 返回 { language: [], math: [], ... } 格式
       // 转成扁平数组兼容旧格式
       var flat = [];
       Object.values(data).forEach(function(arr) {
@@ -1304,14 +1304,14 @@ function fetchLeaderboardFromWorker() {
       return data;
     })
     .catch(function(err) {
-      console.warn('Worker 拉取失败，使用本地缓存:', err);
+      console.warn('拉取失败，使用本地缓存:', err);
       return null;
     });
 }
 
 // 提交分数到 Worker
 function pushScoreToWorker(entry) {
-  return fetch(API_BASE + '/leaderboard', {
+  return fetch('/api/leaderboard', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(entry)
