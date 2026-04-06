@@ -1280,74 +1280,48 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 // ============================================================
-// RANKING SYSTEM (GitHub API + localStorage cache)
+// RANKING SYSTEM (Cloudflare Worker + KV + localStorage cache)
 // ============================================================
-// ⚠️ 去 GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
-// 创建一个只勾选 "Contents: Read and write" 的 token，然后填到这里
-// Token 拆分存储，运行时拼接，避免明文暴露
-const 
-const 
-const 
+// Worker 地址 - 部署后改成你的 Worker 域名
+const API_BASE = 'https://xingce-leaderboard.yyc479265439.workers.dev';
 
-const GH_OWNER = 'rickyyc168';
-const GH_REPO  = 'xingce-game';
-const GH_FILE  = 'leaderboard.json';
-const GH_API   = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/' + GH_FILE;
-
-let ghFileSha = null; // 缓存文件 SHA，写入时需要
-
-function ghHeaders() {
-  return {
-    'Authorization': 'Bearer ' + GH_TOKEN,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json'
-  };
-}
-
-// 从 GitHub 拉取排行榜
-function fetchLeaderboardFromGitHub() {
-  if (!GH_TOKEN) return Promise.resolve(null);
-  return fetch(GH_API, { headers: ghHeaders() })
+// 从 Worker 拉取排行榜（数据按分类存储）
+function fetchLeaderboardFromWorker() {
+  return fetch(API_BASE + '/leaderboard')
     .then(function(res) {
-      if (!res.ok) throw new Error('GitHub fetch ' + res.status);
+      if (!res.ok) throw new Error('Worker fetch ' + res.status);
       return res.json();
     })
     .then(function(data) {
-      ghFileSha = data.sha;
-      var decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
-      localStorage.setItem('xingce_leaderboard', JSON.stringify(decoded));
-      return decoded;
+      // Worker 返回 { language: [], math: [], ... } 格式
+      // 转成扁平数组兼容旧格式
+      var flat = [];
+      Object.values(data).forEach(function(arr) {
+        if (Array.isArray(arr)) flat = flat.concat(arr);
+      });
+      localStorage.setItem('xingce_leaderboard', JSON.stringify(flat));
+      localStorage.setItem('xingce_leaderboard_grouped', JSON.stringify(data));
+      return data;
     })
     .catch(function(err) {
-      console.warn('GitHub 拉取失败，使用本地缓存:', err);
+      console.warn('Worker 拉取失败，使用本地缓存:', err);
       return null;
     });
 }
 
-// 推送排行榜到 GitHub
-function pushLeaderboardToGitHub(lbData) {
-  if (!GH_TOKEN) return Promise.resolve();
-  var body = {
-    message: '更新排行榜 - ' + new Date().toLocaleString('zh-CN'),
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(lbData, null, 2)))),
-    branch: 'main'
-  };
-  if (ghFileSha) body.sha = ghFileSha;
-
-  return fetch(GH_API, {
-    method: 'PUT',
-    headers: ghHeaders(),
-    body: JSON.stringify(body)
+// 提交分数到 Worker
+function pushScoreToWorker(entry) {
+  return fetch(API_BASE + '/leaderboard', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry)
   })
     .then(function(res) {
-      if (!res.ok) throw new Error('GitHub push ' + res.status);
+      if (!res.ok) throw new Error('Worker push ' + res.status);
       return res.json();
     })
-    .then(function(data) {
-      ghFileSha = data.content.sha;
-    })
     .catch(function(err) {
-      console.warn('GitHub 推送失败:', err);
+      console.warn('Worker 推送失败:', err);
     });
 }
 
@@ -1369,29 +1343,31 @@ function saveName(name) {
 }
 
 function addScore(name, category, level, score, maxCombo, totalCorrect, totalWrong) {
-  // 先从 GitHub 拉最新数据，合并后再推送
-  fetchLeaderboardFromGitHub().then(function(remote) {
-    var lb = remote || getLeaderboard();
-    lb.push({
-      name, category, level, score, maxCombo,
-      totalCorrect, totalWrong, date: Date.now()
-    });
-    // 按分类保留前 100 名
-    var cats = {};
-    lb.forEach(function(e) {
-      if (!cats[e.category]) cats[e.category] = [];
-      cats[e.category].push(e);
-    });
-    var trimmed = [];
-    Object.values(catList).forEach(function(catKey) {
-      var entries = (cats[catKey.key] || [])
-        .sort(function(a, b) { return b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo; })
-        .slice(0, 100);
-      trimmed = trimmed.concat(entries);
-    });
-    saveLeaderboard(trimmed);
-    pushLeaderboardToGitHub(trimmed);
+  var entry = {
+    name, category, level, score, maxCombo,
+    totalCorrect, totalWrong, date: Date.now()
+  };
+  // 推送到 Worker
+  pushScoreToWorker(entry).then(function() {
+    // 推送成功后刷新本地缓存
+    fetchLeaderboardFromWorker();
   });
+  // 同时写入本地缓存（即时显示）
+  var lb = getLeaderboard();
+  lb.push(entry);
+  var cats = {};
+  lb.forEach(function(e) {
+    if (!cats[e.category]) cats[e.category] = [];
+    cats[e.category].push(e);
+  });
+  var trimmed = [];
+  Object.values(catList).forEach(function(catKey) {
+    var entries = (cats[catKey.key] || [])
+      .sort(function(a, b) { return b.level - a.level || b.score - a.score || b.maxCombo - a.maxCombo; })
+      .slice(0, 100);
+    trimmed = trimmed.concat(entries);
+  });
+  saveLeaderboard(trimmed);
 }
 
 const catList = {
@@ -1454,11 +1430,9 @@ function showLeaderboard() {
   // 先显示本地缓存，同时后台拉取最新
   renderLeaderboard();
   document.getElementById('leaderboard-modal').style.display = 'flex';
-  if (GH_TOKEN) {
-    fetchLeaderboardFromGitHub().then(function(data) {
-      if (data) renderLeaderboard();
-    });
-  }
+  fetchLeaderboardFromWorker().then(function(data) {
+    if (data) renderLeaderboard();
+  });
 }
 
 function closeLeaderboard() {
